@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI로 나의 포켓몬 찾기</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+        }
+
+        body {
+            background-color: #FFFDF0;
+            color: #4A3E3D;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: #FFFFFF;
+            border: 3px solid #FFE494;
+            border-radius: 24px;
+            box-shadow: 0 10px 20px rgba(210, 180, 140, 0.2);
+            width: 100%;
+            max-width: 600px;
+            padding: 32px 24px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #D97706;
+            margin-bottom: 12px;
+        }
+
+        p.subtitle {
+            font-size: 1.1rem;
+            color: #78350F;
+            margin-bottom: 24px;
+        }
+
+        /* MBTI Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .mbti-btn {
+            background-color: #FEF3C7;
+            border: 2px solid #FDE68A;
+            border-radius: 16px;
+            padding: 16px 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #B45309;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mbti-btn:hover {
+            background-color: #FDE047;
+            transform: translateY(-2px);
+        }
+
+        /* Result View */
+        .hidden {
+            display: none;
+        }
+
+        .pokemon-emoji {
+            font-size: 6rem;
+            margin: 16px 0;
+            line-height: 1;
+        }
+
+        .pokemon-name {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #B45309;
+            margin-bottom: 8px;
+        }
+
+        .mbti-badge {
+            display: inline-block;
+            background-color: #FEF3C7;
+            color: #D97706;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 6px 16px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        .description {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #57534E;
+            background-color: #FFFBEB;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            text-align: left;
+            word-break: keep-all;
+        }
+
+        .match-box {
+            background-color: #FEF2F2;
+            border: 1px solid #FECACA;
+            padding: 12px;
+            border-radius: 12px;
+            color: #991B1B;
+            font-size: 1.05rem;
+            font-weight: bold;
+            margin-bottom: 24px;
+        }
+
+        .reset-btn {
+            background-color: #F59E0B;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 14px 32px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .reset-btn:hover {
+            background-color: #D97706;
+        }
+
+        @media (max-width: 480px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div id="select-screen">
+            <h1>나의 MBTI 포켓몬 찾기</h1>
+            <p class="subtitle">당신의 MBTI 유형을 선택해 주세요!</p>
+            <div class="grid" id="mbti-grid"></div>
+        </div>
+
+        <div id="result-screen" class="hidden">
+            <span class="mbti-badge" id="res-mbti"></span>
+            <div class="pokemon-emoji" id="res-emoji"></div>
+            <div class="pokemon-name" id="res-name"></div>
+            <div class="description" id="res-desc"></div>
+            <div class="match-box" id="res-match"></div>
+            <button class="reset-btn" onclick="reset()">다시 고르기</button>
+        </div>
+    </div>
+
+    <script>
+        const pokemonData = {
+            "ISTJ": { name: "암나이트", emoji: "🐚", desc: "규칙을 잘 지키고 성실하며 자기 관리가 철저합니다.<br>조용하지만 한 번 맡은 임무는 끝까지 책임지고 완수하는 신뢰의 아이콘입니다.", match: "ESFP (긍정적이고 밝은 에너지로 완벽한 보완)" },
+            "ISFJ": { name: "해피너스", emoji: "🥚", desc: "상대방의 감정을 잘 배려하고 언제나 온화하게 도와줍니다.<br>주변 사람들의 행복을 최우선으로 챙기는 마음 따뜻한 포켓몬입니다.", match: "ESTP (서로의 부족한 점을 채워주는 든든한 조력)" },
+            "INFJ": { name: "뮤", emoji: "🐱", desc: "깊은 통찰력과 신비로운 매력을 지니고 있습니다.<br>타인의 마음을 잘 이해하며 이상적인 세상을 꿈꾸는 조용한 탐구자입니다.", match: "ENFP (서로의 이상과 창의력을 자유롭게 공유)" },
+            "INTJ": { name: "뮤츠", emoji: "🧬", desc: "치밀한 계획과 강력한 논리력으로 문제를 해결합니다.<br>독립성이 강하며 항상 효율적인 결과를 도출해내는 전략가입니다.", match: "ENTP (끝없는 지적 호기심을 함께 나눌 토론 파트너)" },
+            "ISTP": { name: "파이리", emoji: "🦎", desc: "상황 판단이 빠르고 손재주가 뛰어납니다.<br>조용하지만 실전에 강하며, 관심 있는 분야에 순식간에 집중하는 파워를 가집니다.", match: "ESFJ (세심한 챙김과 자유로운 실행력의 조화)" },
+            "ISFP": { name: "메타몽", emoji: "🫠", desc: "온순하고 유연하며 유연하게 주변에 잘 맞춰줍니다.<br>자유로운 영혼을 지녔으며 예술적인 감수성과 유연성을 갖추고 있습니다.", match: "ENTJ (명확한 방향 제시로 상호 발전)" },
+            "INFP": { name: "이브이", emoji: "🦊", desc: "무한한 가능성과 풍부한 상상력을 가지고 있습니다.<br>상대방의 가치를 존중하며 마음속에 따뜻한 열정을 품고 살아갑니다.", match: "ENFJ (서로의 꿈을 응원하는 따뜻한 시너지)" },
+            "INTP": { name: "고스트", emoji: "👻", desc: "독창적인 관점으로 세상을 바라보며 탐구하기를 좋아합니다.<br>호기심이 많고 문제의 본질을 파악하는 데 몰입하는 지적 능력이 뛰어납니다.", match: "ENTJ (아이디어를 현실로 구현해줄 결단력 파트너)" },
+            "ESTP": { name: "피카츄", emoji: "⚡", desc: "넘치는 에너지와 순발력으로 즉흥적인 모험을 즐깁니다.<br>어디서나 당당하며 빠르게 상황을 해결하는 도전에 두려움이 없는 타입입니다.", match: "ISFJ (안정적인 서포트로 완벽한 팀워크 형성)" },
+            "ESFP": { name: "푸린", emoji: "🎤", desc: "어디서나 분위기를 밝게 만드는 타고난 엔터테이너입니다.<br>사람들과 함께하는 것을 좋아하며 시선을 사로잡는 매력을 가지고 있습니다.", match: "ISTJ (차분함으로 과열된 열정을 잘 가다듬어줌)" },
+            "ENFP": { name: "토게피", emoji: "🥚", desc: "밝고 순수한 에너지로 주변에 행운과 웃음을 전합니다.<br>새로운 아이디어가 샘솟으며 사람들과의 관계를 소중히 여깁니다.", match: "INFJ (깊은 감정적 공감과 영감을 교환)" },
+            "ENTP": { name: "팬텀", emoji: "😈", desc: "장난기 넘치고 재치 있는 입담으로 지루할 틈을 주지 않습니다.<br>새로운 도전과 토론을 즐기며 고정관념을 깨는 아이디어가 가득합니다.", match: "INTJ (전략과 아이디어가 결합한 최강의 조합)" },
+            "ESTJ": { name: "윈디", emoji: "🐕", desc: "용맹하고 리더십이 뛰어나 집단을 당당하게 이끕니다.<br>체계적이고 공평하며 목표 달성을 위해 확실하게 밀고 나가는 힘이 있습니다.", match: "INFP (상호 감정적 보완과 유연성 제공)" },
+            "ESFJ": { name: "이상해씨", emoji: "🍃", desc: "협동심이 강하며 타인을 돕는 일에 적극적입니다.<br>친근하고 친절한 성품으로 대중을 아우르고 평화를 유지하려 노력합니다.", match: "ISTP (문제 해결 중심의 대화로 실질적 도움 주거받음)" },
+            "ENFJ": { name: "망나뇽", emoji: "🐉", desc: "따뜻한 정의감과 타인을 이끄는 수호자 같은 매력이 있습니다.<br>주변 사람들에게 긍정적인 영향력을 발휘하며 힘든 이를 포용해 줍니다.", match: "INFP (깊은 가치관을 함께 공유하는 단짝)" },
+            "ENTJ": { name: "리자몽", emoji: "🔥", desc: "강한 승부욕과 목표 의식으로 무장한 타고난 지도자입니다.<br>어려운 장애물도 열정으로 돌파하며 비전을 향해 거침없이 나아갑니다.", match: "INTP (창의적인 분석력과 강력한 추진력의 만남)" }
+        };
+
+        const mbtiList = Object.keys(pokemonData);
+        const grid = document.getElementById('mbti-grid');
+
+        // 버튼 생성
+        mbtiList.forEach(mbti => {
+            const btn = document.createElement('button');
+            btn.className = 'mbti-btn';
+            btn.innerText = mbti;
+            btn.onclick = () => showResult(mbti);
+            grid.appendChild(btn);
+        });
+
+        // 결과 보여주기
+        function showResult(mbti) {
+            const data = pokemonData[mbti];
+            document.getElementById('res-mbti').innerText = mbti;
+            document.getElementById('res-emoji').innerText = data.emoji;
+            document.getElementById('res-name').innerText = data.name;
+            document.getElementById('res-desc').innerHTML = data.desc;
+            document.getElementById('res-match').innerText = "❤️ 잘 맞는 궁합: " + data.match;
+
+            document.getElementById('select-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+        }
+
+        // 다시 고르기
+        function reset() {
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('select-screen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
